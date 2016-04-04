@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Template Configuration of Redmine Clipper</title>
+    <style type="text/css">
+    #params {
+        height: 8em;
+    }
+    
+    #template {
+        height: 30em;
+    }
+    
+    button#save {
+        margin-top: 3em;
+    }
+    
+    div#status {
+        margin-top: 1em;
+    }
+    </style>
+</head>
+
+<body>
+    <label>
+        <h2>daily-report params(in JSON)</h2>
+        <textarea style="width: 95%;" id="params"></textarea>
+    </label>
+    <label>
+        <h2>the content of Template(in HTML)</h2>
+        <textarea style="width: 95%;" id="template"></textarea>
+    </label>
+    
+    <button id="clear" style="margin-right: 2em;">Reset to default</button>
+    <button id="save">Save</button>
+    <div id="status"></div>
+    <script src="./js/tinymce/tinymce.min.js"></script>
+    <script src="./js/options.js"></script>
+</body>
+
+</html>
