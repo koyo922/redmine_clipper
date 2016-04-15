@@ -100,61 +100,83 @@ genBtn.onclick = function(e) {
     container.style.overflow = "hidden";
     document.body.appendChild(container); // first append it onto the page, then we can query it.
 
-    chrome.storage.local.get({ params: "not_configured", template: null }, function(config) {
-        if (config.params == "not_configured") {
-            alert("You need to configure the params before using");
-            return;
-        }
-
+    var configuration = null;
+    new Promise((resolve, reject) => { //try get configuration
+        chrome.storage.local.get({ params: "not_configured", template: null }, function(config) {
+            if (config.params == "not_configured") {
+                reject("You need to configure the params before using");
+            } else {
+                resolve(config);
+            }
+        });
+    }).then((config) => { //got config
         // apply template & find blanks
+        configuration = config;
         container.innerHTML = config.template;
         var redmine_today = getElementsByText("div, p, span", "{%redmine_today%}")[0];
-        var redmine_yesterday = getElementsByText("div, p, span", "{%redmine_yesterday%}")[0];
-        var redmine_today_uri = getElementsByText("div, p, span", "{%redmine_today_uri%}")[0];
 
         // replace redmine_today
         var table = document.querySelector("table.list.issues");
-        if (table) {
-            redmine_today.parentElement.replaceChild(
-                table.cloneNode(true), // CAUTION: if not cloned, the original would be moved
-                redmine_today
-            );
-        } else {
-            redmine_today.parentElement.replaceChild(
-                DOMify("<h2 style='color:red'>empty issues-list, please yank it manually</h2>"),
-                redmine_today
-            );
-        }
-        // get & replace redmine_yesterday
-        getHTML(window.location.search.replace(/updated_on%5D=[^&]+&/g, "updated_on%5D=ld&"), function(response) {
-            table = response.documentElement.querySelector("table.list.issues");
-            if (table) {
-                redmine_yesterday.parentElement.replaceChild( //CAUTION, replace params order
-                    table.cloneNode(true),
-                    redmine_yesterday
-                );
-            } else {
-                redmine_yesterday.parentElement.replaceChild(
-                    DOMify("<h2 style='color:red'>empty issues-list, please yank it manually</h2>"),
-                    redmine_yesterday
-                );
+        redmine_today.parentElement.replaceChild(
+            table ? table.cloneNode(true) : DOMify("<h2 style='color:red'>empty issues-list, please yank it manually</h2>"), // CAUTION: if not cloned, the original would be moved
+            redmine_today
+        );
 
-            }
-            //replace redmine_today_uri
-            redmine_today_uri.parentElement.replaceChild(
-                DOMify("<a href='" + window.location + "'>" + window.location + "</a>"),
-                redmine_today_uri
-            );
-
-            copyRangeToClipboard("div#dr-container");
-            sendEMail(
-                config.params.emailTo,
-                config.params.ccTo,
-                config.params.bccTo,
-                new DateFormat(config.params.title.replace(/{%([^%]*)%}/g, "$1")).format(new Date()),
-                config.params.body
-            );
+        return new Promise((resolve, reject) => {
+            chrome.storage.local.get("cache_last", (val) => { //try get cache
+                var cache = val.cache_last;
+                console.log(cache);
+                if (cache.substr && (cache.substr(0, 8) != new DateFormat("yyyyMMdd").format(new Date()))) {
+                    resolve(DOMify(cache.substr(8)));
+                } else {
+                    reject("no useful cache found");
+                };
+            });
         });
+    }, (err) => {
+        alert(err);
+    }).then((cache) => { //got cache
+        var redmine_yesterday = getElementsByText("div, p, span", "{%redmine_yesterday%}")[0];
+        redmine_yesterday.parentElement.replaceChild( //CAUTION, replace params order
+            cache,
+            redmine_yesterday
+        );
+    }, function(err) { //no cache
+        console.error("Error: " + err + "\nget redmine_yesterday from HTML");
+        return new Promise((resolve, reject) => {
+            getHTML(window.location.search.replace(/updated_on%5D=[^&]+&/g, "updated_on%5D=ld&"), function(response) {
+                var table = response.documentElement.querySelector("table.list.issues");
+                var redmine_yesterday = getElementsByText("div, p, span", "{%redmine_yesterday%}")[0];
+                redmine_yesterday.parentElement.replaceChild(
+                    table ? table.cloneNode(true) : DOMify("<h2 style='color:red'>empty issues-list, please yank it manually</h2>"),
+                    redmine_yesterday
+                );
+                resolve();
+            });
+        });
+    }).then(() => { //fill today_URI, send email
+        var redmine_today_uri = getElementsByText("div, p, span", "{%redmine_today_uri%}")[0];
+
+        //replace redmine_today_uri
+        redmine_today_uri.parentElement.replaceChild(
+            DOMify("<a href='" + window.location + "'>" + window.location + "</a>"),
+            redmine_today_uri
+        );
+
+        copyRangeToClipboard("div#dr-container");
+
+        //wait
+        sendEMail(
+            configuration.params.emailTo,
+            configuration.params.ccTo,
+            configuration.params.bccTo,
+            new DateFormat(configuration.params.title.replace(/{%([^%]*)%}/g, "$1")).format(new Date()),
+            configuration.params.body
+        );
+
+        // var redmine_today = getElementsByText("div, p, span", "{%redmine_today%}")[0];
+        var redmine_today = container.querySelector("table.list.issues");  //already replaced
+        chrome.storage.local.set({ "cache_last": new DateFormat("yyyyMMdd").format(new Date()) + redmine_today.outerHTML }, null); //outerHTML is property, not function
     });
 }
 
