@@ -125,8 +125,8 @@ genBtn.onclick = function(e) {
         return new Promise((resolve, reject) => {
             chrome.storage.local.get("cache_last", (val) => { //try get cache
                 var cache = val.cache_last;
-                console.log(cache);
-                if (cache.substr && (cache.substr(0, 8) != new DateFormat("yyyyMMdd").format(new Date()))) {
+                console.log(cache); // what if undefined?, remember it test `cache != undefined`
+                if (cache && cache.substr && (cache.substr(0, 8) != new DateFormat("yyyyMMdd").format(new Date()))) {
                     resolve(DOMify(cache.substr(8)));
                 } else {
                     reject("no useful cache found");
