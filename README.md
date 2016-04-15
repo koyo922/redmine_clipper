@@ -8,6 +8,8 @@ WARNING:
 
 Updates:
 
+*	v1.1.1
+	-	fix the bug of `undefined` cache, for cold-startup
 *	v1.1
 	-	support local cache of last redmine_today.
 	-	rewritten with Promise in ES6
