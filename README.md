@@ -4,4 +4,12 @@ Redmine based daily-report generator
 
 WARNING:
 
-** Extremely dirty code, not suitable for human reading ... **
+*Extremely dirty code, not suitable for human reading ...*
+
+Updates:
+
+*	v1.1
+	-	support local cache of last redmine_today.
+	-	rewritten with Promise in ES6
+*	v1.0
+	-	original version, as demonstrated at Study-Mtg
